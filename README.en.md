@@ -4,6 +4,10 @@ English | [中文](./README.md)
 
 **Give Codex the brains of GPT and the value of DeepSeek — switch with one click mid-conversation, context preserved, task uninterrupted.**
 
+<div align="center">
+  <img src="./assets/demo.png" width="600" alt="Demo">
+</div>
+
 A local gateway written in Rust (single exe, zero runtime dependencies). Codex points its `config.toml` at the gateway, which routes requests to OpenAI or DeepSeek based on the `model` field — no protocol conversion, SSE streams passed through as-is.
 
 ## How It Works

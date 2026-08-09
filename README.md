@@ -4,6 +4,10 @@
 
 **让 Codex 同时拥有 GPT 的大脑和 DeepSeek 的性价比——同一个会话里点一下就切，上下文不丢、任务不断。**
 
+<div align="center">
+  <img src="./assets/demo.png" width="600" alt="效果预览">
+</div>
+
 Rust 编写的本地网关（单文件 exe，零运行时依赖）。Codex 把 `config.toml` 指向网关，网关按请求里的 `model` 字段自动路由到官方或 DeepSeek，无需协议转换，SSE 流式原样透传。
 
 ## 工作原理
