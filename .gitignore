@@ -1,0 +1,13 @@
+# Rust build artifacts（标准 target 目录，构建产物，不入库）
+/target/
+/dist/
+
+# Codex 助手运行时的中间文件（如有，不入库；删掉不影响项目）
+/.codex/
+
+# OS / editor
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
