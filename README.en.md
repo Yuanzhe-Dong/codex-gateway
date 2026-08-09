@@ -4,6 +4,8 @@ English | [中文](./README.md)
 
 **Give Codex the brains of GPT and the value of DeepSeek — switch with one click mid-conversation, context preserved, task uninterrupted.**
 
+**Key advantage:** Unlike Codex++ / CC Switch, codex-gateway lets you use your official subscription and DeepSeek together — in the same menu, the same conversation. Official models draw on your ChatGPT subscription quota; DeepSeek models use your DeepSeek API. Other tools either force you to switch between the two, or merge them but bill GPT through the OpenAI API pay-as-you-go, leaving your subscription unused.
+
 <div align="center">
   <img src="./assets/demo.png" width="600" alt="Demo">
 </div>

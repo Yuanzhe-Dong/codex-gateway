@@ -4,6 +4,8 @@
 
 **让 Codex 同时拥有 GPT 的大脑和 DeepSeek 的性价比——同一个会话里点一下就切，上下文不丢、任务不断。**
 
+**核心优势：** 与 Codex++ / CC Switch 不同，codex-gateway 能把官方订阅套餐和 DeepSeek 真正放在一起用——同一个菜单、同一个会话，官方模型走你的 ChatGPT 订阅额度，DeepSeek 模型走你的 DeepSeek API，各用各的。其他工具要么只能二选一切换着用，要么合并使用但 GPT 也改走 OpenAI API 按量计费，订阅套餐完全用不上。
+
 <div align="center">
   <img src="./assets/demo.png" width="600" alt="效果预览">
 </div>
