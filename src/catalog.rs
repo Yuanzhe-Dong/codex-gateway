@@ -35,7 +35,8 @@ fn deepseek_entry(slug: &str, display_name: &str, priority: i64) -> Value {
         "supported_in_api": true,
         "supported_reasoning_levels": [
             { "description": "Disable Thinking", "effort": "none" },
-            { "description": "Enabled Thinking", "effort": "high" }
+            { "description": "Enabled Thinking", "effort": "high" },
+            { "description": "Maximum Reasoning", "effort": "xhigh" }
         ],
         "supports_image_detail_original": false,
         "supports_parallel_tool_calls": false,
@@ -159,6 +160,20 @@ mod tests {
             .collect();
         assert!(slugs.contains(&"deepseek-v4-flash"));
         assert!(slugs.contains(&"deepseek-v4-pro"));
+    }
+
+    #[test]
+    fn deepseek_supports_none_high_xhigh() {
+        let models = builtin_deepseek_models();
+        for m in &models {
+            let levels = m["supported_reasoning_levels"].as_array().unwrap();
+            let efforts: Vec<&str> = levels
+                .iter()
+                .filter_map(|l| l.get("effort").and_then(|e| e.as_str()))
+                .collect();
+            // xhigh 在 UI 占位「最高档」，由网关映射为 DeepSeek 的 max
+            assert_eq!(efforts, vec!["none", "high", "xhigh"]);
+        }
     }
 
     #[test]

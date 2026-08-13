@@ -83,7 +83,7 @@ async fn proxy_all(State(st): State<ProxyState>, req: Request) -> Response {
         let body = if up == Upstream::Official {
             sanitize_for_official(&body)
         } else {
-            body
+            map_deepseek_reasoning_effort(&body)
         };
         forward(&st, method, &uri, &headers, body, up).await
     } else {
@@ -136,6 +136,40 @@ fn sanitize_for_official(body: &[u8]) -> Bytes {
                         obj.remove("content");
                     }
                 }
+            }
+        }
+    }
+    Bytes::from(v.to_string())
+}
+
+/// DeepSeek 路由：把 Codex 的 `reasoning.effort` 映射到 DeepSeek 实际支持的档位。
+///
+/// Codex 的 effort 枚举（none/minimal/low/medium/high/xhigh）里没有 `max`，
+/// 而 DeepSeek V4 的思考强度只支持 none（非思考）/ high / max。
+/// 因此 catalog 里用 `xhigh` 占位「最高档」，在此映射为 DeepSeek 的 `max`；
+/// 其余档位退化为 DeepSeek 能接受的最近档位（low/medium→high、minimal→none）。
+fn map_deepseek_reasoning_effort(body: &[u8]) -> Bytes {
+    let Ok(mut v) = serde_json::from_slice::<serde_json::Value>(body) else {
+        return Bytes::copy_from_slice(body);
+    };
+    if let Some(reasoning) = v.get_mut("reasoning").and_then(|r| r.as_object_mut()) {
+        let effort = reasoning
+            .get("effort")
+            .and_then(|e| e.as_str())
+            .map(|s| s.to_string());
+        if let Some(effort) = effort {
+            let mapped = match effort.as_str() {
+                "xhigh" => "max",
+                "low" | "medium" => "high",
+                "minimal" => "none",
+                other => other,
+            };
+            if mapped != effort.as_str() {
+                reasoning.insert(
+                    "effort".to_string(),
+                    serde_json::Value::String(mapped.to_string()),
+                );
+                tracing::info!(from = %effort, to = mapped, "映射 DeepSeek reasoning effort");
             }
         }
     }
@@ -475,6 +509,50 @@ mod tests {
         assert_eq!(input[3]["name"], "f", "custom_tool_call 的 name 应保留");
         // 用户消息保留
         assert_eq!(input[4]["content"].as_array().unwrap().len(), 1, "用户消息 content 应保留");
+    }
+
+    #[test]
+    fn map_deepseek_effort_xhigh_to_max() {
+        // xhigh → max（DeepSeek 最深档）
+        let raw = json!({
+            "model": "deepseek-v4-flash",
+            "reasoning": {"effort": "xhigh", "summary": "none"},
+            "input": [{"type": "message", "role": "user", "content": [{"type": "input_text", "text": "hi"}]}]
+        });
+        let out: serde_json::Value =
+            serde_json::from_slice(&map_deepseek_reasoning_effort(raw.to_string().as_bytes())).unwrap();
+        assert_eq!(out["reasoning"]["effort"], "max");
+
+        // low → high
+        let raw = json!({"model": "deepseek-v4-flash", "reasoning": {"effort": "low"}});
+        let out: serde_json::Value =
+            serde_json::from_slice(&map_deepseek_reasoning_effort(raw.to_string().as_bytes())).unwrap();
+        assert_eq!(out["reasoning"]["effort"], "high");
+
+        // medium → high
+        let raw = json!({"model": "deepseek-v4-flash", "reasoning": {"effort": "medium"}});
+        let out: serde_json::Value =
+            serde_json::from_slice(&map_deepseek_reasoning_effort(raw.to_string().as_bytes())).unwrap();
+        assert_eq!(out["reasoning"]["effort"], "high");
+
+        // high 保持不变
+        let raw = json!({"model": "deepseek-v4-flash", "reasoning": {"effort": "high"}});
+        let out: serde_json::Value =
+            serde_json::from_slice(&map_deepseek_reasoning_effort(raw.to_string().as_bytes())).unwrap();
+        assert_eq!(out["reasoning"]["effort"], "high");
+
+        // none 保持不变
+        let raw = json!({"model": "deepseek-v4-flash", "reasoning": {"effort": "none"}});
+        let out: serde_json::Value =
+            serde_json::from_slice(&map_deepseek_reasoning_effort(raw.to_string().as_bytes())).unwrap();
+        assert_eq!(out["reasoning"]["effort"], "none");
+
+        // 无 reasoning 字段时原样返回
+        let raw = json!({"model": "deepseek-v4-flash", "input": "hi"});
+        let out: serde_json::Value =
+            serde_json::from_slice(&map_deepseek_reasoning_effort(raw.to_string().as_bytes())).unwrap();
+        assert_eq!(out["model"], "deepseek-v4-flash");
+        assert!(out.get("reasoning").is_none());
     }
 
     #[tokio::test]
