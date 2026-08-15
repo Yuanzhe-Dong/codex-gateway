@@ -119,6 +119,8 @@ fn log_input_shape(body: &[u8]) {
 /// - 其余类型（`additional_tools` / `function_call` / `function_call_output` /
 ///   `custom_tool_call` / `custom_tool_call_output` / `compaction` 等）不应有 content 字段；
 ///   桌面端可能误带，移除以免 400 "Unknown parameter: 'input[N].content'"。
+///   此外 tool call 的 `id`/`call_id` 需以 `ws` 开头；桌面端经 custom provider 生成的是
+///   `call_` 前缀，改写为 `ws_` 前缀以免官方后端报 `Invalid 'input[N].id'`。
 fn sanitize_for_official(body: &[u8]) -> Bytes {
     let Ok(mut v) = serde_json::from_slice::<serde_json::Value>(body) else {
         return Bytes::copy_from_slice(body);
@@ -134,6 +136,18 @@ fn sanitize_for_official(body: &[u8]) -> Bytes {
                 _ => {
                     if let Some(obj) = item.as_object_mut() {
                         obj.remove("content");
+                        // OpenAI 官方后端要求 tool call 的 id 以 "ws" 开头；
+                        // 桌面端经 custom provider 生成的 id 是 "call_" 开头，需改写前缀。
+                        for key in ["id", "call_id"] {
+                            if let Some(id) = obj.get(key).and_then(|v| v.as_str()) {
+                                if let Some(rest) = id.strip_prefix("call_") {
+                                    obj.insert(
+                                        key.to_string(),
+                                        serde_json::Value::String(format!("ws_{rest}")),
+                                    );
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -509,6 +523,26 @@ mod tests {
         assert_eq!(input[3]["name"], "f", "custom_tool_call 的 name 应保留");
         // 用户消息保留
         assert_eq!(input[4]["content"].as_array().unwrap().len(), 1, "用户消息 content 应保留");
+    }
+
+    #[test]
+    fn sanitize_official_rewrites_tool_call_id_prefix() {
+        let raw = json!({
+            "model": "gpt-5.6-terra",
+            "input": [
+                {"type": "custom_tool_call", "name": "f", "arguments": "{}", "id": "call_00_abc123", "content": []},
+                {"type": "custom_tool_call_output", "call_id": "call_00_abc123", "output": "x"},
+                {"type": "function_call", "name": "g", "arguments": "{}", "id": "call_00_def456"},
+                {"type": "function_call_output", "call_id": "call_00_def456", "output": "y"}
+            ]
+        });
+        let out: serde_json::Value =
+            serde_json::from_slice(&sanitize_for_official(raw.to_string().as_bytes())).unwrap();
+        let input = out["input"].as_array().unwrap();
+        assert_eq!(input[0]["id"], "ws_00_abc123", "custom_tool_call id 应改写为 ws_ 前缀");
+        assert_eq!(input[1]["call_id"], "ws_00_abc123", "custom_tool_call_output call_id 应改写");
+        assert_eq!(input[2]["id"], "ws_00_def456", "function_call id 应改写为 ws_ 前缀");
+        assert_eq!(input[3]["call_id"], "ws_00_def456", "function_call_output call_id 应改写");
     }
 
     #[test]
