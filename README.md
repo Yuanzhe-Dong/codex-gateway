@@ -64,6 +64,30 @@ cd c:\Codex无缝接私有API
 .\target\release\codex-gateway.exe start   # 切回 DeepSeek
 ```
 
+## 控制台脚本与开始菜单快捷方式
+
+项目根目录自带菜单式控制台，覆盖全部操作：
+
+- **`codex-gateway 控制台.ps1`**：界面核心（PowerShell 脚本，菜单：`1 启动 / 2 停止 / 3 状态 / 4 配置向导 / 5 查看日志 / 6 卸载 / 0 退出`；支持 `start|stop|status|setup|log|uninstall` 参数模式）
+- **`codex-gateway 控制台.bat`**：纯 ASCII 启动器，转发给上面的 ps1（直接双击 bat 也可用）
+
+> 界面用 PowerShell 而不是 bat 实现，是为了绕开 cmd 在 UTF-8 代码页下解析中文批处理的已知 bug（中文会乱码/截断）。
+
+一键安装到开始菜单（当前用户，无需管理员）：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "安装到开始菜单.ps1"
+```
+
+安装后开始菜单 → 所有应用 → **Codex 网关** 文件夹里有 6 个快捷方式，**全部直接调用 powershell.exe + ps1**（不经过 bat，避免 .bat 关联被第三方软件劫持）：
+**Codex 网关控制台**、**启动网关**、**停止网关**、**查看状态**、**配置向导**、**查看日志**（带自定义闪电图标，启动/停止/状态为最小化运行）。
+
+移除快捷方式：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "安装到开始菜单.ps1" -Remove
+```
+
 ## 如何获取 DeepSeek API Key
 
 1. 打开 [platform.deepseek.com](https://platform.deepseek.com)，注册 / 登录
