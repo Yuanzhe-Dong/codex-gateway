@@ -1,6 +1,7 @@
 # Rust build artifacts（标准 target 目录，构建产物，不入库）
 /target/
 /dist/
+/codex-gateway.exe
 
 # Codex 助手运行时的中间文件（如有，不入库；删掉不影响项目）
 /.codex/
@@ -12,3 +13,7 @@ Desktop.ini
 .idea/
 .trae/
 *.swp
+
+# Python desktop compatibility checks
+__pycache__/
+*.py[cod]

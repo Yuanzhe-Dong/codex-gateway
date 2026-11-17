@@ -1,11 +1,15 @@
 @echo off
 setlocal
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0codex-gateway 控制台.ps1" %*
-if errorlevel 1 (
-  echo.
-  echo [错误] 控制台脚本运行失败，错误码 %errorlevel%
-  echo 请把窗口里的错误信息完整截图反馈。
-  echo.
-  pause
+set "GATEWAY_CONSOLE="
+for %%F in ("%~dp0codex-gateway *.ps1") do set "GATEWAY_CONSOLE=%%~fF"
+if not defined GATEWAY_CONSOLE (
+  echo Gateway console script was not found.
+  exit /b 1
 )
-exit /b %errorlevel%
+"%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File "%GATEWAY_CONSOLE%" %*
+set "GATEWAY_EXIT=%ERRORLEVEL%"
+if not "%GATEWAY_EXIT%"=="0" (
+  echo Gateway operation failed with exit code %GATEWAY_EXIT%.
+  if "%~1"=="" pause
+)
+exit /b %GATEWAY_EXIT%
