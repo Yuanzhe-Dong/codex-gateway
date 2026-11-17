@@ -74,9 +74,12 @@ try {
   Assert-Console ((Invoke-Gateway 'restart') -eq 1) 'Elevated error was swallowed'
   $cancelElevation = $true
   Assert-Console ((Invoke-Gateway 'restart') -eq 5) 'Canceled UAC reported success'
-  Write-Host 'Console regression checks passed (no actual elevation or gateway operations).'
 } finally {
   $env:GATEWAY_CONSOLE_TEST_EXIT = $previousTestExit
   [IO.File]::Delete($exe)
   [IO.Directory]::Delete($testDir)
 }
+
+# Mock commands deliberately return nonzero statuses. Report success only after all assertions and cleanup.
+Write-Host 'Console regression checks passed (no actual elevation or gateway operations).'
+exit 0
